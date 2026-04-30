@@ -41,9 +41,9 @@ st.markdown("""
 # 3. [로직] 뉴스 및 리포트 처리 (에러 수정본 유지)
 @st.cache_data(ttl=600)
 def fetch_refined_data(query_text, filter_type="news", lang='ko'):
-    base_filter = "-의원 -이벤트 -개원 -진료개시 -원장 -친절 -체험단 -모집 -맛집"
+    base_filter = "-의원 -체험단 -맛집"
     if filter_type == "news":
-        query_text = f"({query_text}) AND (대학병원 OR 상급종합병원 OR 국책 OR 가이드라인 OR 대형병원)"
+        query_text = f"({query_text}) AND (대학병원 OR 상급종합병원 OR 종합병원 OR 국책 OR 가이드라인 OR 대형병원 OR 전문병원)"
     url = f"https://news.google.com/rss/search?q={quote(query_text + ' ' + base_filter)}&hl={lang}&gl=KR&ceid=KR:{lang}"
     feed = feedparser.parse(url)
     grouped = defaultdict(list)
@@ -96,7 +96,7 @@ with tab_news:
         with kw_cols[i]: st.markdown(f'<div class="keyword-card"><div class="count-num">{count}건</div><div class="keyword-tag">#{word}</div></div>', unsafe_allow_html=True)
 
     # [수정 반영] 안내 멘트 회색 텍스트로 변경
-    st.markdown('<div class="simple-guide">... 하단의 키워드를 누르면 분석리포트&자소서매칭 확인이 가능합니다. 병원의 인재상과 자신의 역량을 연결해보세요.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="simple-guide"> 하단의 키워드를 누르면 분석리포트&자소서매칭 확인이 가능합니다. 병원의 인재상과 자신의 역량을 연결해보세요.</div>', unsafe_allow_html=True)
 
     for e in news_data[:12]:
         badge = f'<span class="news-badge">{e.count}건</span>' if e.count > 1 else ""
