@@ -76,7 +76,8 @@ st.divider()
 # 탭 시스템
 tab_news, tab_paper, tab_jobs, tab_assoc = st.tabs(["🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "💼 타겟 채용 정보", "🔔 협회 링크 & 이슈"])
 
-# [탭 1] 뉴스 분석
+
+# [탭 1] 뉴스 분석 부분 수정
 with tab_news:
     with st.spinner("최신 이슈를 분석 중입니다..."):
         news_data = fetch_refined_data(["임상병리 디지털", "분자진단 기술", "액체생검 AACR"])
@@ -87,18 +88,31 @@ with tab_news:
             press = entry.get('source', {}).get('text', '전문 매체')
             is_major = any(p in press for p in MAJOR_PRESS)
             
-            # 날짜 형식 적용 (Apr. 2026 스타일)
+            # 날짜 형식 적용
             f_date = format_date_eng(entry.published)
-            display_title = f"{'⭐' if is_major else '📍'} {entry.title} [{f_date}]"
-            if entry.count > 1: display_title += f" (+{entry.count-1})"
+            
+            # --- [수정 포인트] 제목과 숫자 박스 레이아웃 ---
+            title_col, count_col = st.columns([0.85, 0.15]) # 제목 8.5 : 숫자박스 1.5 비율
+            
+            with title_col:
+                display_title = f"{'⭐' if is_major else '📍'} {entry.title} [{f_date}]"
+                # expander를 제목 컬럼 안에 배치
+                exp = st.expander(display_title)
+            
+            with count_col:
+                # 관련 기사가 여러 건일 경우 주황색 박스 노출
+                if entry.count > 1:
+                    st.warning(f"**{entry.count}건**")
+                else:
+                    st.write("") # 1건일 때는 깔끔하게 비움
 
-            with st.expander(display_title):
+            with exp: # 익스팬더 내부 내용
                 # 1. 상단 분석 리포트
                 st.markdown(f"#### 🔍 분석 리포트")
-                col1, col2 = st.columns(2)
-                with col1:
+                c1, c2 = st.columns(2)
+                with c1:
                     st.success(f"**현안 주제**\n{strat['topic']}")
-                with col2:
+                with c2:
                     st.info(f"**📜 관련 지침/법령**\n{strat['gov_rule']}")
                 
                 st.markdown(f"**🔑 키워드:** `{strat['tags']}`")
@@ -106,7 +120,7 @@ with tab_news:
                 # 2. 중간 자소서 활용 (주황색 칸 강조)
                 st.warning(f"**🎯 자소서 활용 팁**\n\n{MY_EXPERIENCE.split(',')[0]} 역량을 본 이슈와 연결하여 전문성을 어필하세요.")
                 
-                # 3. 하단 출처 정보 (맨 아래로 이동)
+                # 3. 하단 출처 정보
                 st.divider()
                 st.caption(f"출처: {press} | 원문 날짜: {entry.published}")
                 st.markdown(f"🔗 [기사 원문 읽기]({entry.link})")
