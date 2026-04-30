@@ -9,11 +9,9 @@ import re
 # 1. 전역 변수 설정
 MY_EXPERIENCE = "분자진단 실습 경험, 환자 중심의 정확한 검사 지향, 꼼꼼한 데이터 관리"
 MAJOR_PRESS = ["연합뉴스", "의학신문", "보건신문", "청년의사", "데일리메디", "메디게이트", "약업신문", "메디파나"]
-ASSOC_LINKS = {"중앙회": "http://www.kamt.or.kr/", "정보학회": "http://www.ksclis.or.kr/", "미생물": "http://www.kscm.or.kr/", "혈액": "http://www.ksch.or.kr/", "진단검사": "https://www.kslm.org/"}
 
 # 2. 페이지 설정 및 CSS
 st.set_page_config(page_title="2026 임상병리 전략 마스터", layout="wide")
-
 st.markdown("""
     <style>
     .news-badge {
@@ -24,20 +22,46 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. 데이터 처리 함수 (매체명 추출 강화)
-def format_date_eng(published_str):
-    try:
-        dt = datetime.datetime.strptime(published_str, '%a, %d %b %Y %H:%M:%S %Z')
-        now = datetime.datetime.now()
-        return dt.strftime('%d %b. %Y') if (dt.year == now.year and dt.month == now.month) else dt.strftime('%b. %Y')
-    except: return published_str
+# 3. [핵심 수정] 기사 제목 맞춤형 정밀 분석 함수
+def analyze_smart_report(title):
+    # 기본값
+    res = {
+        "topic": "보건의료 정책 동향",
+        "gov_rule": "의료기사법 및 보건의료 데이터 지침",
+        "tags": "#보건의료_트렌드",
+        "tip": "본 이슈를 실무 역량과 연결하여 전문성을 어필하세요."
+    }
 
-def analyze_full_strategy(title):
-    res = {"topic": "보건의료 정책 동향", "gov_rule": "의료기사법 및 보건의료 데이터 지침", "tags": "#보건의료_트렌드"}
-    if "디지털" in title or "AI" in title:
-        res.update({"topic": "디지털 병리 및 스마트 진단", "gov_rule": "대한병리학회 [디지털 병리 가이드라인 1.0]", "tags": "#디지털_병리"})
-    elif any(kw in title for kw in ["액체생검", "AACR", "NGS", "분자", "젠큐릭스", "씨젠"]):
-        res.update({"topic": "정밀의료 및 분자진단 고도화", "gov_rule": "심평원 [NGS 기반 유전자 패널검사 실시기관 승인]", "tags": "#NGS_패널검사"})
+    # 1. 학술대회/학술상 관련 분석 (희진님 요청사항)
+    if any(kw in title for kw in ["학술상", "수상", "포럼", "학술대회"]):
+        # 제목에서 학술대회 명칭 추출 시도
+        event_match = re.search(r"([가-힣]+학회|[가-힣]+사회|[가-힣]+포럼)", title)
+        event_name = event_match.group(1) if event_match else "관련 학술 행사"
+        res.update({
+            "topic": f"학술 역량 강화 및 {event_name} 최신 연구",
+            "gov_rule": "대한임상병리사협회 보수교육 및 학술활동 지침",
+            "tags": "#학술상 #연구역량 #임상연구",
+            "tip": f"해당 학술대회의 주요 주제를 파악하여, 최신 연구에 대한 본인의 관심도와 탐구 정신을 강조하세요."
+        })
+
+    # 2. 디지털 병리 관련
+    elif "디지털" in title or "AI" in title:
+        res.update({
+            "topic": "디지털 병리 및 스마트 진단 인프라",
+            "gov_rule": "대한병리학회 [디지털 병리 가이드라인 1.0]",
+            "tags": "#디지털_병리 #LIS_연동",
+            "tip": "장비 디지털화에 따른 데이터 무결성 관리 능력을 강조하세요."
+        })
+
+    # 3. NGS/분자진단 관련
+    elif any(kw in title for kw in ["액체생검", "AACR", "NGS", "분자", "검사"]):
+        res.update({
+            "topic": "정밀의료 및 분자진단 기술 고도화",
+            "gov_rule": "심평원 [NGS 기반 유전자 패널검사 실시기관 승인]",
+            "tags": "#분자진단 #정밀의학",
+            "tip": "분자진단 실습 경험을 바탕으로 정밀 검사 역량을 어필하세요."
+        })
+        
     return res
 
 @st.cache_data(ttl=600)
@@ -60,52 +84,50 @@ def fetch_refined_data(keywords):
         rep = items[0]
         rep.count = len(items)
         
-        # [핵심 수정] 매체명 추출 로직 강화: 제목의 " - 매체명" 부분을 정규식으로 추출
+        # 제목에서 매체명 정밀 분리
         title_match = re.search(r" - (.*)$", rep.title)
         if title_match:
             rep.media_name = title_match.group(1)
-            # 제목에서 매체명 제거하여 깔끔하게 표시
             rep.clean_title = rep.title.replace(f" - {rep.media_name}", "").strip()
         else:
             rep.media_name = rep.get('source', {}).get('text', '뉴스 매체')
             rep.clean_title = rep.title
-
         final.append(rep)
     return sorted(final, key=lambda x: x.published_parsed, reverse=True)
 
-# --- 메인 UI ---
+# --- 메인 화면 ---
 st.title("🔬 2026 임상병리사 커리어 전략 플랫폼")
 st.divider()
 
 tab_news, tab_paper, tab_jobs, tab_assoc = st.tabs(["🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "💼 타겟 채용 정보", "🔔 협회 링크 & 이슈"])
 
-# [탭 1] 의료 뉴스 분석
+3 [탭 1] 의료 뉴스 분석
 with tab_news:
-    with st.spinner("최신 뉴스 분석 중..."):
-        news_data = fetch_refined_data(["임상병리 디지털", "분자진단 기술", "액체생검 AACR"])
-        st.markdown(f"### 📋 오늘 분석된 핵심 뉴스: 총 **{len(news_data)}**건")
+    news_data = fetch_refined_data(["임상병리 디지털", "분자진단 기술", "액체생검 AACR", "임상병리학과 학술상"])
+    st.markdown(f"### 📋 오늘 분석된 핵심 뉴스: 총 **{len(news_data)}**건")
+    
+    for i, entry in enumerate(news_data):
+        # [수정] 똑똑해진 분석 함수 호출
+        strat = analyze_smart_report(entry.clean_title)
+        f_date = datetime.datetime.strptime(entry.published, '%a, %d %b %Y %H:%M:%S %Z').strftime('%d %b. %Y')
+        badge = f'<span class="news-badge">{entry.count}건</span>' if entry.count > 1 else ""
         
-        for i, entry in enumerate(news_data):
-            strat = analyze_full_strategy(entry.clean_title)
-            f_date = format_date_eng(entry.published)
-            badge = f'<span class="news-badge">{entry.count}건</span>' if entry.count > 1 else ""
+        st.markdown(f'<div class="main-title">📍 {entry.clean_title} <small>[{f_date}]</small> {badge}</div>', unsafe_allow_html=True)
+        
+        with st.expander("🔎 분석 리포트 확인"):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.success(f"**현안 주제**\n{strat['topic']}")
+            with c2:
+                st.info(f"**📜 관련 지침/법령**\n{strat['gov_rule']}")
             
-            # 제목 라인 (깔끔한 제목 + 날짜 + 배지)
-            st.markdown(f'<div class="main-title">📍 {entry.clean_title} <small>[{f_date}]</small> {badge}</div>', unsafe_allow_html=True)
+            # 주황색 자소서 팁도 기사 내용에 따라 가변적으로 변경
+            st.warning(f"**🎯 자소서 활용 팁**\n\n{strat['tip']}")
             
-            with st.expander("🔎 분석 리포트 확인"):
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.success(f"**현안 주제**\n{strat['topic']}")
-                with c2:
-                    st.info(f"**📜 관련 지침/법령**\n{strat['gov_rule']}")
-                
-                st.warning(f"**🎯 자소서 활용 팁**\n\n{MY_EXPERIENCE.split(',')[0]} 역량을 본 이슈와 연결하여 실무 전문성을 어필하세요.")
-                
-                st.divider()
-                # 출처 매체명을 이제 확실하게 출력 (예: 출처: 핀포인트뉴스)
-                st.caption(f"**출처: {entry.media_name}** | 원문 날짜: {entry.published}")
-                st.markdown(f"🔗 [기사 원문 읽기]({entry.link})")
+            st.divider()
+            # 매체명 정확히 출력
+            st.caption(f"**출처: {entry.media_name}** | 원문 날짜: {entry.published}")
+            st.markdown(f"🔗 [기사 원문 읽기]({entry.link})")
 
 # [탭 2] 전공 학술 자료 (국내/해외 2단)
 with tab_paper:
