@@ -101,7 +101,7 @@ st.divider()
 
 tab_news, tab_paper, tab_jobs, tab_assoc = st.tabs(["🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "💼 타겟 채용 정보", "🔔 협회 링크 & 이슈"])
 
-3 [탭 1] 의료 뉴스 분석
+# [탭 1] 의료 뉴스 분석
 with tab_news:
     news_data = fetch_refined_data(["임상병리 디지털", "분자진단 기술", "액체생검 AACR", "임상병리학과 학술상"])
     st.markdown(f"### 📋 오늘 분석된 핵심 뉴스: 총 **{len(news_data)}**건")
