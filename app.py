@@ -2,83 +2,102 @@ import streamlit as st
 import feedparser
 import pandas as pd
 from urllib.parse import quote
-from collections import defaultdict
 
 # 1. 페이지 설정
-st.set_page_config(page_title="임상병리 전략 마스터", layout="wide")
+st.set_page_config(page_title="임상병리 2026 전략 플랫폼", layout="wide")
 
-# 2. 핵심 가치 (희진님 데이터)
-MY_EXPERIENCE = "분자진단 실습 경험, 환자 중심의 정확한 검사 지향, 꼼꼼한 데이터 관리"
-MAJOR_PRESS = ["연합뉴스", "의학신문", "보건신문", "청년의사", "데일리메디", "메디게이트", "약업신문"]
+# 2. 고정 데이터: 각 분과별 공식 사이트 링크 (허브용)
+ASSOC_LINKS = {
+    "중앙회": "http://www.kamt.or.kr/", # 대한임상병리사협회
+    "정보학회": "http://www.ksclis.or.kr/", # 대한임상검사정보학회
+    "미생물": "http://www.kscm.or.kr/", # 대한임상미생물검사학회
+    "혈액": "http://www.ksch.or.kr/", # 대한임상혈액검사학회
+    "조직세포": "http://www.kscct.or.kr/", # 대한임상조직세포검사학회
+    "진단검사": "https://www.kslm.org/" # 대한진단검사의학회
+}
 
-# 3. 데이터 분석 로직 (구체적 근거 포함)
-def analyze_full_strategy(title):
-    # 기본값
-    res = {
-        "topic": "미래 진단 기술 동향",
-        "evidence_detail": "최신 학계 보고 및 기술 특허 기반",
-        "gov_rule": "보건복지부 의료기관 인증 기준",
-        "tags": "#미래진단 #직무고도화"
-    }
-    
-    if "디지털" in title or "AI" in title:
-        res["topic"] = "디지털 병리 및 AI 진단 보조"
-        res["evidence_detail"] = "S병원·A병원 등 상급종합병원 '디지털 병리 인프라' 구축 기사 누적"
-        res["gov_rule"] = "대한병리학회 [디지털 병리 가이드라인 1.0] 및 보건복지부 [보건의료 데이터 활용 가이드라인]"
-        res["tags"] = "#디지털_병리 #데이터_무결성"
-    elif "액체생검" in title or "AACR" in title or "NGS" in title:
-        res["topic"] = "액체생검 및 NGS 정밀의료"
-        res["evidence_detail"] = "글로벌 암 학회(AACR 2026) 국내 진단 기업 성과 발표"
-        res["gov_rule"] = "건강보험심사평가원 [NGS 기반 유전자 패널검사 실시기관 승인] 지침"
-        res["tags"] = "#NGS_패널검사 #정밀의료"
-    elif "간담회" in title or "협력" in title:
-        res["topic"] = "대학병원 경영 효율화"
-        res["evidence_detail"] = "필수의료 확충을 위한 상급종합병원-정부 간 정책 협의"
-        res["gov_rule"] = "보건복지부 [공공의료체계 강화 방안] 및 의료 질 평가 지표"
-        res["tags"] = "#경영효율화 #의료전달체계"
-        
-    return res
+# 3. 데이터 수집 함수 (개별 로딩용)
+@st.cache_data(ttl=600)
+def fetch_news(keywords):
+    all_entries = []
+    for kw in keywords:
+        query = f"{kw} -공무원 -모집"
+        url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+        feed = feedparser.parse(url)
+        all_entries.extend(feed.entries)
+    return all_entries[:10]
 
 # --- 화면 UI 시작 ---
-st.title("🔬 임상병리사 커리어 전략 대시보드")
+st.title("🔬 2026 임상병리사 취업 전략 플랫폼")
 
-# [수정된 부분] 상단 트렌드 요약 섹션 - 이제 구체적인 이름이 나옵니다!
-st.markdown("### 📊 최근 1개월 전략 키워드 & 구체적 근거")
-t_col1, t_col2, t_col3 = st.columns(3)
-
+# [상단 요약] 1개월 전략 키워드 & 구체적 근거
+st.markdown("### 📊 최근 1개월 전략 키워드 & 실증 근거")
+t_col1, t_col2 = st.columns(2)
 with t_col1:
-    st.info("**#디지털_병리_전환**")
-    st.markdown("📂 **실무 근거**")
-    st.caption("상급종합병원 디지털 병리 서버 및 스캐너 도입 확산")
-    st.markdown("⚖️ **정부/학회 지침**")
-    st.caption("**대한병리학회 [디지털 병리 가이드라인 1.0]**")
-    st.caption("**보건복지부 [보건의료 데이터 활용 가이드라인]**")
-
+    st.info("**#디지털_병리_품질관리**")
+    st.caption("📂 **실무 근거:** 주요 상급종합병원 LIS(실험실정보시스템) 연동 기사 누적")
+    st.caption("⚖️ **지침:** 대한병리학회 [디지털 병리 가이드라인 1.0] 내 이미지 표준화 지침")
 with t_col2:
-    st.info("**#NGS_액체생검_확대**")
-    st.markdown("🔬 **실무 근거**")
-    st.caption("AACR 2026 액체생검-조직검사 일치율 데이터 공개")
-    st.markdown("⚖️ **정부/학회 지침**")
-    st.caption("**심평원 [NGS 유전자 패널검사 실시기관 승인]**")
-    st.caption("**암정복추진연구개발사업 지원 대상 선정**")
-
-with t_col3:
-    st.info("**#AI_판독_효율화**")
-    st.markdown("💻 **실무 근거**")
-    st.caption("루닛·뷰노 등 AI 진단 솔루션 신의료기술평가 통과")
-    st.markdown("⚖️ **정부/학회 지침**")
-    st.caption("**식약처 [인공지능 의료기기 허가·심사 가이드라인]**")
-    st.caption("**디지털 헬스케어 진흥 및 보건의료데이터 활용 법안**")
+    st.info("**#NGS_액체생검_급여화**")
+    st.caption("🔬 **실무 근거:** 2026 AACR 국내 진단기업 일치율 데이터(80% 이상) 보도")
+    st.caption("⚖️ **지침:** 심평원 [NGS 기반 유전자 패널검사 실시기관 승인] 지침")
 
 st.divider()
 
-# --- 탭 구성 (이하 로직은 이전과 동일하되 세부 분석에 구체적 근거 반영) ---
-tab1, tab2, tab3, tab4 = st.tabs(["🗞️ 의료 뉴스", "🔬 학술/논문", "💼 타겟 채용", "🔔 협회 공지"])
+# [모듈형 탭]
+tab_news, tab_paper, tab_jobs, tab_assoc = st.tabs([
+    "🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "💼 타겟 채용 정보", "🔔 협회 링크 & 이슈"
+])
 
-with tab1:
-    # (fetch_refined_data 함수 호출 및 출력 로직...)
-    # 분석 카드에서 strat['gov_rule'] 을 출력하도록 설정함
-    st.write("뉴스를 불러오는 중...")
-    # 예시 출력용 (실제 앱에서는 데이터 로딩 로직이 작동함)
-    st.success("🔎 **현안 분석 예시**")
-    st.markdown("**📜 관련 법령/공고:** 대한병리학회 [디지털 병리 가이드라인 1.0]")
+# --- [탭 4] 협회 링크 & 이슈 정리 (희진님 요청사항 집중 반영) ---
+with tab_assoc:
+    st.subheader("🔔 협회별 공식 사이트 & 실시간 이슈 리포트")
+    
+    # 1. 분과별 퀵 링크 (로그인 편의성)
+    st.markdown("#### 🔗 공식 사이트 퀵 링크 (로그인 필요)")
+    link_cols = st.columns(len(ASSOC_LINKS))
+    for i, (name, link) in enumerate(ASSOC_LINKS.items()):
+        link_cols[i].link_button(f"{name} ↗️", link)
+    
+    st.write("")
+    
+    # 2. 뉴스 기반 협회 관련 이슈 정리
+    st.markdown("#### 📰 뉴스에 언급된 협회/학회 관련 이슈")
+    with st.spinner("협회 관련 최신 언급을 정리 중입니다..."):
+        # 협회 명칭들로 뉴스 검색
+        assoc_news = fetch_news(["대한임상병리사협회", "임상검사정보학회 이슈", "진단검사의학회 가이드라인"])
+        
+        if not assoc_news:
+            st.write("최근 협회 관련 대외 뉴스가 없습니다.")
+        else:
+            for n in assoc_news:
+                with st.expander(f"📍 {n.title}"):
+                    st.caption(f"출처: {n.get('source', {}).get('text', '전문매체')} | {n.published}")
+                    st.write(f"🔗 [이슈 자세히 보기]({n.link})")
+                    # 협회 관련성 요약
+                    if "학술" in n.title or "대회" in n.title:
+                        st.success("💡 **분석:** 협회 차원의 대규모 학술 행사가 예정되어 있습니다. 주요 세션을 확인하세요.")
+                    elif "가이드라인" in n.title or "권고" in n.title:
+                        st.warning("💡 **분석:** 실무 지침이 업데이트되었습니다. 면접 전 핵심 내용을 반드시 숙지하세요.")
+
+# --- 나머지 탭은 기능 유지 ---
+with tab_news:
+    with st.spinner("트렌드 분석 중..."):
+        news = fetch_news(["임상병리 디지털", "액체생검 기술"])
+        for n in news:
+            st.markdown(f"**{n.title}**")
+            st.caption(f"[원문보기]({n.link})")
+            st.write("---")
+
+with tab_paper:
+    st.subheader("🔬 최신 학술 동향")
+    papers = fetch_news(["진단검사의학 학술논문", "임상병리 신기술"])
+    for p in papers:
+        st.write(f"📄 {p.title} ([링크]({p.link}))")
+
+with tab_jobs:
+    st.subheader("💼 타겟 병원/기관 공고")
+    jobs = fetch_news(["대학병원 임상병리사 채용", "씨젠 채용", "녹십자 의료재단"])
+    for j in jobs:
+        st.warning(f"💼 {j.title}")
+        st.caption(f"[공고확인]({j.link})")
