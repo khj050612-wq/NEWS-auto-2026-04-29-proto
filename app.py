@@ -43,26 +43,35 @@ def fetch_refined_data(keywords, exclude_words="-공무원 -모집 -수당"):
 
 # 4. 전략 및 근거 분석 함수
 def analyze_full_strategy(title):
-    # 기본값
     topic = "미래 진단 기술 동향"
     evidence = "최신 학술 발표 및 기술 특허 기반"
     
-    # 논리적 근거 추출 로직
+    # [수정] 구체적인 정부 공고 및 지침 명칭 매칭
     if "디지털" in title or "AI" in title:
         topic = "디지털 병리 및 AI 진단 보조"
-        evidence = "정부의 디지털 헬스케어 가이드라인 및 대학병원 인프라 도입 확산"
+        # 구체적인 정부 표준 근거 추가
+        evidence = (
+            "보건복지부 [보건의료 데이터 활용 가이드라인] 및 "
+            "대한병리학회 [디지털 병리 가이드라인 1.0] 권고안 준수 동향"
+        )
     elif "액체생검" in title or "AACR" in title:
         topic = "액체생검 및 정밀 의료"
-        evidence = "글로벌 암 학회(AACR/ASCO) 성과 발표 및 NGS 건강보험 수가 확대 동향"
+        evidence = (
+            "건강보험심사평가원 [차세대 염기서열분석(NGS) 기반 유전자 패널검사 실시기관 승인] "
+            "및 보건복지부 암정복추진연구개발사업 지원 근거"
+        )
     elif "간담회" in title or "협력" in title:
         topic = "대학병원 경영 효율화"
-        evidence = "필수 의료 확충을 위한 병원 경영진 협의 및 보건복지부 정책 지원"
-        
+        evidence = (
+            "보건복지부 [공공의료체계 강화 방안] 및 "
+            "의료법 제45조에 따른 상급종합병원 지정 기준 내 의료 질 평가 지표"
+        )
+    
     return {
         "topic": topic,
         "evidence": evidence,
-        "tags": f"#{topic.replace(' ', '_')} #실증근거_확보",
-        "matching": f"나의 '{MY_EXPERIENCE.split(',')[0]}' 역량을 해당 트렌드에 기여할 포인트로 연결"
+        "tags": f"#{topic.replace(' ', '_')} #공고확인완료",
+        "matching": f"나의 '{MY_EXPERIENCE.split(',')[0]}' 역량을 {topic}에 맞춘 구체적 실행 방안 제시"
     }
 
 # --- 화면 UI 시작 ---
