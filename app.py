@@ -102,7 +102,7 @@ with tab_news:
         badge = f'<span class="news-badge">{e.count}건</span>' if e.count > 1 else ""
         st.markdown(f'<div class="main-title">📍 {e.clean_title} {badge}</div>', unsafe_allow_html=True)
         report = generate_smart_report(e.clean_title)
-        with st.expander(f"🔎 [{report['keyword_name']}] 전략 리포트 확인"):
+        with st.expander(f"🔎 [{report['keyword_name']}]"):
             st.markdown(f"{report['pill']} **{report['keyword_name']} 이슈 중심 분석**", unsafe_allow_html=True)
             st.divider()
             st.markdown("#### 🎯 자소서/면접 전략 매칭")
