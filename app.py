@@ -74,16 +74,22 @@ def fetch_refined_data(query_text, filter_type="news", lang='ko'):
     feed = feedparser.parse(url)
     grouped = defaultdict(list)
     total_raw = len(feed.entries)
+    
     for entry in feed.entries:
+        # 제목에서 신문사 이름 제거 등 전처리
         clean_t = re.sub(r" - .*$", "", entry.title).strip()
         grouped[clean_t.replace(" ", "")[:12]].append(entry)
+        
     final = []
     for items in grouped.values():
         items.sort(key=lambda x: x.published_parsed, reverse=True)
-        rep = items[0]; rep.count = len(items); rep.dt = datetime.datetime(*rep.published_parsed[:6])
-        rep.clean_title = re.sub(r" - .*$", "...").strip() # 긴 제목 요약 방지용 (사용자 표시용 제목은 따로 추출)
+        rep = items[0]
+        rep.count = len(items)
+        rep.dt = datetime.datetime(*rep.published_parsed[:6])
+        # [수정 포인트] 에러 발생 지점 복구: 원본 제목에서 불필요한 부분만 제거
         rep.clean_title = re.sub(r" - .*$", "", rep.title).strip()
         final.append(rep)
+        
     return sorted(final, key=lambda x: x.dt, reverse=True), total_raw
 
 # --- 4. 메인 화면 ---
