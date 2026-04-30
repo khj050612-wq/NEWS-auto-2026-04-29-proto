@@ -15,42 +15,34 @@ ASSOC_LINKS = {
     "대한진단검사의학회": {"url": "https://www.kslm.org/", "icon": "🔬"}
 }
 
-CALENDAR_EVENTS = [
-    {"날짜": "2026-05-15", "항목": "📌 경기도임상병리사회 학생포럼 (두원공대 등)"},
-    {"날짜": "2026-06-20", "항목": "📜 분자진단 전문가 교육 수료 (대학생 가능)"},
-    {"날짜": "2026-09-10", "항목": "📝 임상병리사 국가고시 원서 접수 시작"},
-    {"날짜": "2026-12-13", "항목": "🔥 제54회 임상병리사 국가고시 필기/실기"}
-]
-
-# 2. [UI] 페이지 설정 및 CSS
+# 2. [UI] 페이지 설정
 st.set_page_config(page_title="2026 임상병리 전략 마스터", layout="wide")
 st.markdown("""
     <style>
-    .news-badge {
-        background-color: #D32F2F; color: white; padding: 2px 8px; border-radius: 4px;
-        font-size: 0.75rem; font-weight: bold; margin-left: 8px; display: inline-block; vertical-align: middle;
-    }
-    .main-title { font-size: 1.1rem; font-weight: 600; margin-top: 15px; margin-bottom: 5px; }
-    .month-header {
-        background-color: #f1f3f6; padding: 8px 15px; border-radius: 6px; color: #2c3e50;
-        font-weight: bold; margin-top: 25px; margin-bottom: 10px; border-left: 6px solid #D32F2F;
-    }
-    div.stButton > button { border-radius: 20px; font-size: 12px; padding: 2px 15px; }
+    .main-title { font-size: 0.95rem; font-weight: 600; margin-top: 10px; margin-bottom: 2px; line-height: 1.4; }
+    div.stButton > button { border-radius: 12px; font-size: 11px; height: 24px; padding: 0px 8px; }
+    hr { margin: 8px 0px; border: 0; border-top: 1px solid #f0f0f0; }
+    .caption-style { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. [로직] 데이터 수집 함수
+# 3. [로직] 데이터 수집 (희진님 맞춤 파트 키워드 적용)
 @st.cache_data(ttl=600)
-def fetch_refined_data(keywords, lang='ko'):
-    all_entries = []
-    for kw in keywords:
-        query = f"{kw} -공무원 -모집"
-        url = f"https://news.google.com/rss/search?q={quote(query)}&hl={lang}&gl=KR&ceid=KR:{lang}"
-        feed = feedparser.parse(url)
-        all_entries.extend(feed.entries)
+def fetch_refined_data(part_type):
+    # 희진님이 정해주신 파트별 키워드 셋
+    keywords_map = {
+        "진검": "진단검사의학과 (세포유전 OR 특수혈액 OR 혈액응고 OR 일반혈액 OR 요경검 OR 특수화학 OR 진단면역 OR 미생물 OR 분자유전 OR 혈액은행)",
+        "생리": "신경과 순환기과 호흡기과 (EP OR NCS OR TCD OR VOG OR EEG OR ANS OR 심전도 OR 심초음파 OR 홀터)",
+        "병리": "조직병리 세포병리 분자병리 면역병리 디지털병리",
+        "수상": "임상병리학회 학생포럼 학술상 수상"
+    }
+    
+    query = f"{keywords_map[part_type]} -양체험 -원장 -의사 -수의사"
+    url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+    feed = feedparser.parse(url)
     
     grouped = defaultdict(list)
-    for entry in all_entries:
+    for entry in feed.entries:
         clean_t = re.sub(r" - .*$", "", entry.title).strip()
         unique_key = clean_t.replace(" ", "")[:12]
         grouped[unique_key].append(entry)
@@ -59,74 +51,77 @@ def fetch_refined_data(keywords, lang='ko'):
     for key, items in grouped.items():
         items.sort(key=lambda x: x.published_parsed, reverse=True)
         rep = items[0]
-        rep.count = len(items)
         rep.dt = datetime.datetime(*rep.published_parsed[:6])
-        
         title_match = re.search(r" - (.*)$", rep.title)
-        if title_match:
-            rep.media_name = title_match.group(1)
-            rep.clean_title = rep.title.replace(f" - {rep.media_name}", "").strip()
-        else:
-            rep.media_name = rep.get('source', {}).get('text', '뉴스 매체')
-            rep.clean_title = rep.title
+        rep.media_name = title_match.group(1) if title_match else "뉴스"
+        rep.clean_title = rep.title.replace(f" - {rep.media_name}", "").strip() if title_match else rep.title
         final.append(rep)
     return sorted(final, key=lambda x: x.dt, reverse=True)
 
+# 글로벌 저널 키워드 강조 (병리/생리 파트 추가)
+def bold_keywords(title):
+    kws = ["Pathology", "Clinical", "Diagnostic", "EEG", "ECG", "Echo", "Molecular", "Hematology", "AI"]
+    for kw in kws:
+        title = re.sub(f"({kw})", r"**\1**", title, flags=re.IGNORECASE)
+    return title
+
 # --- 4. 메인 화면 ---
-st.title("🔬 2026 임상병리 커리어 전략 마스터")
-st.divider()
+st.title("🔬 2026 임상병리 파트별 전문 모니터링")
 
-tab_news, tab_paper, tab_cal = st.tabs(["🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "📅 학사/교육 일정"])
+t_news, t_paper, t_cal = st.tabs(["🗞️ 파트별 핵심 뉴스", "🏆 학술/수상 동향", "📅 일정/링크"])
 
-# [탭 1] 의료 뉴스 분석 (기술 및 정책 위주)
-with tab_news:
-    with st.spinner("최신 의료 트렌드 로딩 중..."):
-        # 수상 소식 키워드를 여기서 뺌
-        news_data = fetch_refined_data(["임상병리 디지털 AI", "분자진단 신기술", "검사 자동화 시스템"])
-        st.markdown(f"### 📋 오늘 분석된 주요 뉴스: 총 **{len(news_data)}**건")
-        for entry in news_data:
-            st.markdown(f'<div class="main-title">📍 {entry.clean_title}</div>', unsafe_allow_html=True)
-            with st.expander("🔎 분석 리포트 확인"):
-                st.info(f"**출처**: {entry.media_name} | **일자**: {entry.dt.strftime('%Y-%m-%d')}")
-                st.link_button("원문 읽기", entry.link)
+# [탭 1] 파트별 뉴스 (진검, 생리, 병리 통합)
+with t_news:
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.subheader("🧪 진단검사 파트")
+        for e in fetch_refined_data("진검")[:8]:
+            st.markdown(f'<div class="main-title">{e.clean_title}</div>', unsafe_allow_html=True)
+            col_a, col_b = st.columns([0.7, 0.3])
+            col_a.markdown(f'<div class="caption-style">{e.media_name} | {e.dt.strftime("%m-%d")}</div>', unsafe_allow_html=True)
+            col_b.link_button("원문", e.link, use_container_width=True)
+            st.markdown("<hr>", unsafe_allow_html=True)
+    with c2:
+        st.subheader("🧠 생능 파트")
+        for e in fetch_refined_data("생리")[:8]:
+            st.markdown(f'<div class="main-title">{e.clean_title}</div>', unsafe_allow_html=True)
+            col_a, col_b = st.columns([0.7, 0.3])
+            col_a.markdown(f'<div class="caption-style">{e.media_name} | {e.dt.strftime("%m-%d")}</div>', unsafe_allow_html=True)
+            col_b.link_button("원문", e.link, use_container_width=True)
+            st.markdown("<hr>", unsafe_allow_html=True)
+    with c3:
+        st.subheader("🔬 병리 파트")
+        for e in fetch_refined_data("병리")[:8]:
+            st.markdown(f'<div class="main-title">{e.clean_title}</div>', unsafe_allow_html=True)
+            col_a, col_b = st.columns([0.7, 0.3])
+            col_a.markdown(f'<div class="caption-style">{e.media_name} | {e.dt.strftime("%m-%d")}</div>', unsafe_allow_html=True)
+            col_b.link_button("원문", e.link, use_container_width=True)
+            st.markdown("<hr>", unsafe_allow_html=True)
 
-# [탭 2] 전공 학술 자료 (학생 수상 및 학술대회 집중)
-with tab_paper:
+# [탭 2] 학술/수상 및 글로벌 저널
+with t_paper:
     cl, cr = st.columns(2)
     with cl:
-        st.subheader("🇰🇷 국내 학술 및 학생 수상 동향")
-        # [수정] 수상 및 포럼 관련 키워드를 이쪽으로 배치
-        academic = fetch_refined_data(["임상병리학과 학술상 수상", "임상병리 학생포럼", "대학생 논문 발표"])
-        curr_month = ""
-        for p in academic:
-            m_str = p.dt.strftime('%B %Y')
-            if m_str != curr_month:
-                st.markdown(f'<div class="month-header">{m_str}</div>', unsafe_allow_html=True)
-                curr_month = m_str
-            
-            col_t, col_b = st.columns([0.8, 0.2])
-            with col_t:
-                st.write(f"🏆 {p.clean_title}") # 수상 느낌 나게 트로피 아이콘
-            with col_b:
-                st.link_button("보기", p.link, use_container_width=True)
-
+        st.subheader("🏆 국내 학생 수상 및 학술")
+        academic = fetch_refined_data("수상")
+        for p in academic[:12]:
+            st.markdown(f"**{p.clean_title}**")
+            st.caption(f"{p.dt.strftime('%Y.%m')} | {p.media_name}")
+            st.link_button("내용 보기", p.link)
+            st.markdown("<hr>", unsafe_allow_html=True)
     with cr:
-        st.subheader("🌐 Global Journals (English)")
-        foreign = fetch_refined_data(["site:nature.com pathology", "site:sciencedirect.com diagnostic"], lang='en')
-        for fp in foreign[:10]:
+        st.subheader("🌐 Global Journals")
+        foreign = fetch_refined_data("병리", lang='en') # 병리/진단 키워드로 영어 검색
+        for fp in foreign[:12]:
             if not re.search('[가-힣]', fp.clean_title):
-                col_ft, col_fb = st.columns([0.8, 0.2])
-                with col_ft:
-                    st.write(f"📄 {fp.clean_title}")
-                with col_fb:
-                    st.link_button("Read", fp.link, use_container_width=True)
+                st.markdown(f"📄 {bold_keywords(fp.clean_title)}")
+                st.caption(f"Source: {fp.media_name}")
+                st.link_button("Read", fp.link)
+                st.markdown("<hr>", unsafe_allow_html=True)
 
-# [탭 3] 학사 일정 및 퀵 링크
-with tab_cal:
-    st.subheader("📅 임상병리학과 대학생 필수 일정")
-    st.table(pd.DataFrame(CALENDAR_EVENTS))
-    st.divider()
-    st.subheader("🔗 공식 사이트 퀵 링크")
+# [탭 3] 일정 및 링크
+with t_cal:
+    st.info("📅 제54회 임상병리사 국가고시: 2026-12-13 (일)")
     l_cols = st.columns(len(ASSOC_LINKS))
     for i, (name, info) in enumerate(ASSOC_LINKS.items()):
         l_cols[i].link_button(f"{info['icon']} {name}", info['url'], use_container_width=True)
