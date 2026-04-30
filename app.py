@@ -103,13 +103,13 @@ with tab_paper:
                 st.write(f"🔹 {e.clean_title}")
                 st.link_button(f"{e.media_name} 보기", e.link)
         # 2. 생리
-        with st.expander("🧠 생리 기능 (EEG, 심초음파, NCS 등)"):
+        with st.expander("🧠 생리기능"):
             for e in fetch_refined_data("임상병리사 (EEG OR NCS OR 심초음파 OR 순환기과)")[:5]:
                 st.write(f"🔹 {e.clean_title}")
                 st.link_button(f"{e.media_name} 보기", e.link)
         # 3. 병리/수상
-        with st.expander("🔬 병리 및 학생 수상 실적"):
-            for e in fetch_refined_data("병리과 (디지털병리 OR 면역병리) OR 임상병리학과 수상")[:5]:
+        with st.expander("🔬 병리"):
+            for e in fetch_refined_data("병리과 (디지털병리 OR 면역병리))[:5]:
                 st.write(f"🏆 {e.clean_title}")
                 st.link_button("상세 보기", e.link)
 
