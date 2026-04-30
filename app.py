@@ -77,8 +77,8 @@ with t1:
         with st.expander("🔎 분석 리포트 확인"):
             st.info(f"**출처: [{entry.media_name}]({entry.link})**")
 
-# [탭 2] 전공 학술 자료 (월별 정렬)
-with t2:
+# [탭 2] 전공 학술 자료 (UI 개선 버전)
+with tab_paper:
     cl, cr = st.columns(2)
     with cl:
         st.subheader("🇰🇷 국내 학술 동향")
@@ -89,13 +89,29 @@ with t2:
             if month_str != curr_month:
                 st.markdown(f'<div class="month-header">{month_str}</div>', unsafe_allow_html=True)
                 curr_month = month_str
-            st.write(f"📌 [{p.clean_title}]({p.link})")
+            
+            # [수정] 하이퍼링크 대신 제목 + 옆에 작은 버튼 배치
+            c1, c2 = st.columns([0.85, 0.15])
+            with c1:
+                st.write(f"📌 {p.clean_title}")
+            with c2:
+                st.link_button("보기", p.link, use_container_width=True)
+
     with cr:
-        st.subheader("🌐 Global Journals")
-        foreign = fetch_refined_data(["site:nature.com pathology"], lang='en')
-        for fp in foreign[:8]:
+        st.subheader("🌐 Global Journals (English)")
+        st.link_button("PubMed 바로가기 ↗️", "https://pubmed.ncbi.nlm.nih.gov/", use_container_width=True)
+        st.write("") # 간격 조절
+        
+        foreign = fetch_refined_data(["site:nature.com pathology", "site:sciencedirect.com diagnostic"], lang='en')
+        for fp in foreign[:10]:
             if not re.search('[가-힣]', fp.clean_title):
-                st.write(f"📄 [{fp.clean_title}]({fp.link})")
+                # [수정] 해외 저널도 하이퍼링크 제거하고 버튼으로!
+                f_c1, f_c2 = st.columns([0.8, 0.2])
+                with f_c1:
+                    st.write(f"📄 {fp.clean_title}")
+                    st.caption(f"Source: {fp.media_name}")
+                with f_c2:
+                    st.link_button("Read", fp.link, use_container_width=True)
 
 # [탭 3] 대학생 전용 일정 및 퀵 링크 (요청사항 집중 반영)
 with t3:
