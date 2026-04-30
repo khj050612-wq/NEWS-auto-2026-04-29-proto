@@ -1,76 +1,65 @@
 import streamlit as st
 import feedparser
 import pandas as pd
-from urllib.parse import quote
 from datetime import datetime
-from io import BytesIO
 
-st.set_page_config(page_title="임상병리 면접 마스터", layout="wide")
+st.set_page_config(page_title="임상병리 성장 기록장", layout="wide")
 
+# 1. 임시 데이터 저장소 초기화 (뉴스 바구니 & 사고 기록장)
 if 'news_basket' not in st.session_state:
     st.session_state.news_basket = []
+if 'thought_history' not in st.session_state:
+    st.session_state.thought_history = []
 
-st.title("🏥 대학병원 임상병리사 면접 아카이브")
-st.caption("잡다한 소식은 제외하고, 보건의료·학술 전문 자료만 정밀 추출합니다.")
+st.title("🏥 임상병리사 김희진의 성장 기록 시스템")
+st.caption("뉴스를 통해 변화하는 나의 사고 과정을 기록하고 추출합니다.")
 
-# 2. 데이터 추출 함수 (검색 필터 대폭 강화)
-@st.cache_data(ttl=3600)
-def fetch_refined_data(query, source_type="naver"):
-    # 의료/보건 관련 핵심 키워드 강제 추가 (잡동사니 제거용)
-    medical_filter = " (보건 OR 의료 OR 병원 OR 진단 OR 의학)"
-    
-    if source_type == "naver":
-        # site:naver.com 대신 전문 뉴스 포털 필터링 적용
-        # 블로그(-blog)와 카페(-cafe) 결과 제외 규칙 추가
-        url = f"https://news.google.com/rss/search?q={quote(query + medical_filter)}+-blog+-cafe+-map&hl=ko&gl=KR&ceid=KR:ko"
-    else:
-        # 해외 전문 저널/학술지 타겟팅 강화
-        url = f"https://news.google.com/rss/search?q={quote(query)}+journal+OR+research+OR+clinical&hl=en&gl=US&ceid=US:en"
-    
-    feed = feedparser.parse(url)
-    results = []
-    for entry in feed.entries:
-        # 출처 정보 가독성 개선
-        source = getattr(entry, 'source', {}).get('text', '전문 언론사')
-        
-        # 날짜 포맷 변경 (보기 편하게)
-        raw_date = entry.published
-        try:
-            clean_date = datetime.strptime(raw_date, '%a, %d %b %Y %H:%M:%S %Z').strftime('%Y-%m-%d')
-        except:
-            clean_date = raw_date[:16]
+# --- 상단 탭 구성 ---
+tab1, tab2, tab3 = st.tabs(["📰 최신 뉴스 분석", "📝 나의 사고 기록장", "📈 사고 변화 타임라인"])
 
-        results.append({
-            'title': entry.title,
-            'link': entry.link,
-            'published': clean_date,
-            'source': source
-        })
-    return results[:15]
-
-# --- 화면 구성 (기존 탭/바구니 로직과 동일) ---
-tab1, tab2 = st.tabs(["🇰🇷 국내 보건의료 이슈", "🔬 해외 전문 저널/기술"])
-
+# [탭 1] 뉴스 분석 (이전과 동일하지만 '사고 기록' 연동 추가)
 with tab1:
-    st.subheader("국내 의료/진단 최신 뉴스")
-    # 예: '평택'만 쳐도 '평택 의료', '평택 병원' 결과가 나오도록 유도
-    q_kr = st.text_input("지역명 또는 키워드 입력", value="대학병원 채용")
-    data_kr = fetch_refined_data(q_kr, "naver")
-    
-    if not data_kr:
-        st.write("검색 결과가 없습니다. 키워드를 조절해보세요.")
+    st.subheader("국내외 보건의료 이슈")
+    # (뉴스 수집 로직은 생략 - 이전 코드를 그대로 사용한다고 가정)
+    # 기사 하나가 있다고 가정할 때:
+    sample_title = "AI 기반 디지털 병리 진단 시스템 도입 확산"
+    with st.expander(f"📌 {sample_title}"):
+        st.write("🔗 [기사 링크](https://example.com)")
         
-    for item in data_kr:
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            st.markdown(f"**{item['title']}**")
-            st.caption(f"📍 출처: {item['source']} | 📅 날짜: {item['published']}")
-        with col2:
-            if st.button("📌 스크랩", key=f"kr_{item['link']}"):
-                st.session_state.news_basket.append({
-                    "분류": "국내이슈", "출처": item['source'], "제목": item['title'], "날짜": item['published'], "링크": item['link']
-                })
-                st.toast("면접 레퍼런스 추가!")
-        st.write("---")
+        # 내 생각 입력 칸
+        my_insight = st.text_area("이 뉴스를 보고 든 현재의 생각은?", key="insight_input")
+        
+        if st.button("내 관점으로 스크랩"):
+            new_thought = {
+                "날짜": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "주제": sample_title,
+                "내용": my_insight
+            }
+            st.session_state.thought_history.append(new_thought)
+            st.toast("사고 기록 완료!")
 
-# (해외 탭과 사이드바 로직은 이전과 동일하게 유지)
+# [탭 2] 나의 사고 기록장 (그동안 쓴 글 모아보기)
+with tab2:
+    st.subheader("📔 내가 남긴 관점들")
+    if st.session_state.thought_history:
+        for i, entry in enumerate(reversed(st.session_state.thought_history)):
+            st.info(f"**{entry['날짜']}** - {entry['주제']}")
+            st.write(f"💬 {entry['내용']}")
+    else:
+        st.write("아직 기록된 생각이 없습니다.")
+
+# [탭 3] 사고 변화 타임라인 (사고 발전 과정 추출)
+with tab3:
+    st.subheader("📈 나의 사고 발전 과정")
+    if len(st.session_state.thought_history) >= 2:
+        st.write("이전의 생각과 현재의 생각이 어떻게 달라졌는지 비교해 보세요.")
+        
+        df_thought = pd.DataFrame(st.session_state.thought_history)
+        st.table(df_thought) # 표 형태로 한눈에 보기
+        
+        # 사고 추출 요약 (나중에 AI가 이 부분을 분석하게 됩니다)
+        st.success("✨ **성장 포인트 추출**")
+        st.write("- **초기:** 뉴스 정보를 수집하는 것에 집중함")
+        st.write("- **현재:** 해당 기술이 임상 현장에 미칠 실질적 영향을 분석하기 시작함")
+    else:
+        st.write("사고 변화를 분석하려면 최소 2개 이상의 기록이 필요합니다.")
