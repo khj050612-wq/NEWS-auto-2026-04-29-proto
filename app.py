@@ -171,3 +171,4 @@ with tab_archive:
     st.info("지식을 채우면서 기억해야 할 핵심 내용을 메모하세요.")
     st.text_area("스크랩 노트", placeholder="이슈의 특징이나 본인의 분석 내용을 기록...", height=400)
     st.button("메모 저장")
+    
