@@ -8,12 +8,27 @@ import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="2026 임상병리 전략 마스터", layout="wide")
 
-# 2. 고정 데이터
+# [핵심] 제목 옆 배지 스타일 정의 (CSS)
+st.markdown("""
+    <style>
+    .news-badge {
+        background-color: #D32F2F; /* 세련된 딥 레드 */
+        color: white;
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-left: 10px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. 고정 데이터 및 함수들 (이전과 동일)
 MY_EXPERIENCE = "분자진단 실습 경험, 환자 중심의 정확한 검사 지향, 꼼꼼한 데이터 관리"
 MAJOR_PRESS = ["연합뉴스", "의학신문", "보건신문", "청년의사", "데일리메디", "메디게이트", "약업신문", "메디파나"]
-ASSOC_LINKS = {"중앙회": "http://www.kamt.or.kr/", "정보학회": "http://www.ksclis.or.kr/", "미생물": "http://www.kscm.or.kr/", "혈액": "http://www.ksch.or.kr/", "진단검사": "https://www.kslm.org/"}
 
-# 3. 날짜 포맷 함수
 def format_date_eng(published_str):
     try:
         dt = datetime.datetime.strptime(published_str, '%a, %d %b %Y %H:%M:%S %Z')
@@ -22,10 +37,8 @@ def format_date_eng(published_str):
             return dt.strftime('%d %b. %Y')
         else:
             return dt.strftime('%b. %Y')
-    except:
-        return published_str
+    except: return published_str
 
-# 4. 분석 로직
 def analyze_full_strategy(title):
     res = {"topic": "보건의료 정책 동향", "gov_rule": "의료기사법 및 보건의료 데이터 지침", "tags": "#보건의료_트렌드"}
     if "디지털" in title or "AI" in title:
@@ -54,24 +67,14 @@ def fetch_refined_data(keywords):
         final.append(rep)
     return sorted(final, key=lambda x: x.published_parsed, reverse=True)
 
-# --- 메인 화면 시작 ---
+# --- 화면 구성 ---
 st.title("🔬 2026 임상병리사 커리어 전략 플랫폼")
-
-# 상단 요약
-st.markdown("### 📊 최근 1개월 전략 키워드 & 실증 근거")
-t1, t2 = st.columns(2)
-with t1:
-    st.info("**#디지털_병리_품질관리**\n\n📜 대한병리학회 가이드라인 1.0")
-with t2:
-    st.info("**#NGS_액체생검_급여화**\n\n🔬 심평원 유전자 패널검사 승인 지침")
-
 st.divider()
 
 tab_news, tab_paper, tab_jobs, tab_assoc = st.tabs(["🗞️ 의료 뉴스 분석", "🔬 전공 학술 자료", "💼 타겟 채용 정보", "🔔 협회 링크 & 이슈"])
 
-# [탭 1] 뉴스 분석
 with tab_news:
-    with st.spinner("최신 이슈를 분석 중입니다..."):
+    with st.spinner("최신 이슈 분석 중..."):
         news_data = fetch_refined_data(["임상병리 디지털", "분자진단 기술", "액체생검 AACR"])
         st.markdown(f"### 📋 오늘 분석된 핵심 뉴스: 총 **{len(news_data)}**건")
         
@@ -81,34 +84,25 @@ with tab_news:
             is_major = any(p in press for p in MAJOR_PRESS)
             f_date = format_date_eng(entry.published)
             
-            # --- [수정 포인트] HTML 배지 적용: 제목 옆에 강렬한 레드 숫자 ---
-            badge_html = f'<span style="background-color:#FF4B4B; color:white; padding:2px 8px; border-radius:10px; font-size:14px; font-weight:bold; margin-left:10px;">{entry.count}건</span>' if entry.count > 1 else ""
+            # --- [수정 핵심] 제목 바로 옆에 숫자 배지 강제 삽입 ---
+            badge = f'<span class="news-badge">{entry.count}건</span>' if entry.count > 1 else ""
             
-            # 제목 구성 (배지를 제목 HTML 안에 포함)
-            display_label = f"{'⭐' if is_major else '📍'} {entry.title} [{f_date}]"
+            # 스트림릿 expander 제목에 HTML을 직접 못 넣으므로 아래 방식을 씁니다.
+            # 제목 줄을 마크다운으로 먼저 보여주고 바로 아래 expander 배치 (행간 최소화)
+            st.markdown(f"{'⭐' if is_major else '📍'} **{entry.title}** <small>[{f_date}]</small> {badge}", unsafe_allow_html=True)
             
-            # 익스팬더 라벨에 HTML을 직접 넣을 수 없으므로, 커스텀 라벨링 효과
-            with st.expander(display_label):
-                if entry.count > 1:
-                    st.markdown(f"🔥 **관련 뉴스 총 {entry.count}건이 포착되었습니다.**")
-                
-                # 1. 상단 분석 리포트
-                st.markdown(f"#### 🔍 분석 리포트")
+            with st.expander("🔎 분석 리포트 확인"):
+                # 내부 구성 (주황색 자소서 칸 포함)
                 c1, c2 = st.columns(2)
                 with c1:
                     st.success(f"**현안 주제**\n{strat['topic']}")
                 with c2:
                     st.info(f"**📜 관련 지침/법령**\n{strat['gov_rule']}")
                 
-                st.markdown(f"**🔑 키워드:** `{strat['tags']}`")
-                
-                # 2. 중간 자소서 활용 (주황색 칸 강조)
                 st.warning(f"**🎯 자소서 활용 팁**\n\n{MY_EXPERIENCE.split(',')[0]} 역량을 본 이슈와 연결하여 전문성을 어필하세요.")
                 
-                # 3. 하단 출처 정보
                 st.divider()
-                st.caption(f"출처: {press} | 원문 날짜: {entry.published}")
-                st.markdown(f"🔗 [기사 원문 읽기]({entry.link})")
+                st.caption(f"출처: {press} | 원문 날짜: {entry.published} | [기사 원문]({entry.link})")
 
 # [탭 2] 전공 학술 자료 (2단 레이아웃)
 with tab_paper:
