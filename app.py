@@ -110,3 +110,47 @@ with tab_news:
             st.table(match_df)
             st.caption(f"[뉴스 원문 보기]({e.link}) | {e.dt.strftime('%Y-%m-%d')}")
             
+# [TAB 2] 전공 분과 (복구)
+with tab_paper:
+    cl, cr = st.columns(2)
+    with cl:
+        st.subheader("🧬 분과별 실무 기술")
+        sections = {
+            "🧪 진단검사 (분자유전/NGS)": "(진단검사의학과 NGS) OR (분자유전)",
+            "🧠 생리기능 (심초음파/EEG/TCD)": "(심초음파 검사) OR (뇌파 EEG) OR (신경전도 검사)",
+            "🔬 병리 파트 (조직/세포/디지털)": "(디지털병리) OR (면역조직) OR (세포병리)"
+        }
+        for name, query in sections.items():
+            with st.expander(name):
+                data, _ = fetch_refined_data(query, filter_type="major")
+                for e in data[:5]:
+                    st.markdown(f'<span class="part-label">실무</span> {e.clean_title}', unsafe_allow_html=True)
+                    st.link_button("지침/기술 확인", e.link)
+    with cr:
+        st.subheader("🌐 Global Journals")
+        data, _ = fetch_refined_data("Clinical Pathology OR Molecular Diagnostic", lang='en')
+        for fp in data[:10]:
+            if not re.search('[가-힣]', fp.clean_title):
+                st.markdown(f"📄 {fp.clean_title}")
+                st.link_button("READ", fp.link)
+
+# [TAB 3] 경험 아카이브 (복구)
+with tab_archive:
+    st.subheader("📓 나의 경험 데이터베이스")
+    st.info("여기에 희진님의 자소서 파일이나 실습 일지를 업로드하면 뉴스 키워드와 자동으로 매칭됩니다.")
+    uploaded_file = st.file_uploader("자소서/경험 정리 파일 업로드 (PDF, TXT)", type=["pdf", "txt"])
+    if uploaded_file:
+        st.success("파일이 성공적으로 로드되었습니다. 이제 뉴스 리포트에서 관련 경험이 매칭됩니다.")
+
+# [TAB 4] 일정/링크 (복구)
+with tab_cal:
+    st.subheader("📅 주요 일정 및 바로가기")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("#### 🔗 유관 기관")
+        for name, info in ASSOC_LINKS.items():
+            st.link_button(f"{info['icon']} {name}", info['url'], use_container_width=True)
+    with c2:
+        st.markdown("#### ⏰ 하반기 주요 일정")
+        st.write("- 2026 하반기 대학병원 공채 시작 (9월 예정)")
+        st.write("- 제 54회 임상병리사 국가고시 (12월 예정)")
