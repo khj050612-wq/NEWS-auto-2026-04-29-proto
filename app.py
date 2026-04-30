@@ -1,65 +1,72 @@
 import streamlit as st
 import feedparser
 import pandas as pd
-from datetime import datetime
+from urllib.parse import quote
 
-st.set_page_config(page_title="임상병리 성장 기록장", layout="wide")
+st.set_page_config(page_title="임상병리 전략 보드", layout="wide")
 
-# 1. 임시 데이터 저장소 초기화 (뉴스 바구니 & 사고 기록장)
+# [임시] 저녁에 구글 시트 연동 전까지 사용할 희진님의 경험/가치관 데이터
+# 나중에 이 부분이 구글 시트에서 불러온 텍스트로 대체됩니다.
+MY_EXPERIENCE = "분자진단 실습 경험, 환자 중심의 정확한 검사 지향, 꼼꼼한 데이터 관리"
+
 if 'news_basket' not in st.session_state:
     st.session_state.news_basket = []
-if 'thought_history' not in st.session_state:
-    st.session_state.thought_history = []
 
-st.title("🏥 임상병리사 김희진의 성장 기록 시스템")
-st.caption("뉴스를 통해 변화하는 나의 사고 과정을 기록하고 추출합니다.")
+# --- 핵심 추출 로직 ---
+def get_strategic_analysis(title, experience):
+    # 1. 기사 한줄 요약 (제목 기반)
+    summary = f"{title[:30]}..." 
+    
+    # 2. 핵심 키워드 추출 (간단 로직)
+    keywords = "의료 트렌드 / 보건 정책"
+    if "AI" in title: keywords = "디지털 전환 / 진단 보조"
+    elif "검사" in title: keywords = "검사 정확도 / 효율성"
+    
+    # 3. 임상병리 연결
+    connection = "임상병리사의 직무 전문성과 검체 관리 역량이 강조되는 이슈입니다."
+    
+    # 4. 내 경험/가치관과 연결 (이게 핵심!)
+    my_link = f"내 가치관('{experience}')을 바탕으로 면접에서 직무 적합성을 어필하기 좋은 소재입니다."
+    
+    return {
+        "요약": summary,
+        "핵심": keywords,
+        "연결": connection,
+        "매칭": my_link
+    }
 
-# --- 상단 탭 구성 ---
-tab1, tab2, tab3 = st.tabs(["📰 최신 뉴스 분석", "📝 나의 사고 기록장", "📈 사고 변화 타임라인"])
+st.title("🔬 임상병리 전략적 뉴스 분석")
 
-# [탭 1] 뉴스 분석 (이전과 동일하지만 '사고 기록' 연동 추가)
-with tab1:
-    st.subheader("국내외 보건의료 이슈")
-    # (뉴스 수집 로직은 생략 - 이전 코드를 그대로 사용한다고 가정)
-    # 기사 하나가 있다고 가정할 때:
-    sample_title = "AI 기반 디지털 병리 진단 시스템 도입 확산"
-    with st.expander(f"📌 {sample_title}"):
-        st.write("🔗 [기사 링크](https://example.com)")
+# 뉴스 수집 로직 (네이버 뉴스 중심)
+@st.cache_data(ttl=3600)
+def fetch_news():
+    SEARCH_KEYWORDS = ["임상병리사", "진단기술", "대학병원 의료"]
+    all_entries = []
+    for kw in SEARCH_KEYWORDS:
+        url = f"https://news.google.com/rss/search?q={quote(kw)}+-blog+-cafe&hl=ko&gl=KR&ceid=KR:ko"
+        feed = feedparser.parse(url)
+        all_entries.extend(feed.entries)
+    return sorted({e.link: e for e in all_entries}.values(), key=lambda x: x.published_parsed, reverse=True)
+
+for entry in fetch_news()[:15]:
+    analysis = get_strategic_analysis(entry.title, MY_EXPERIENCE)
+    
+    with st.container():
+        st.markdown(f"### 📍 {entry.title}")
+        st.caption(f"출처: {getattr(entry, 'source', {}).get('text', '뉴스')} | [원문보기]({entry.link})")
         
-        # 내 생각 입력 칸
-        my_insight = st.text_area("이 뉴스를 보고 든 현재의 생각은?", key="insight_input")
+        # 딱 필요한 4가지만 표로 구성
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"**📝 기사 한줄 요약:** {analysis['요약']}")
+            st.markdown(f"**🔑 핵심 키워드:** {analysis['핵심']}")
+        with col2:
+            st.markdown(f"**🧬 임상병리 연결:** {analysis['연결']}")
+            st.markdown(f"**🎯 내 경험과 연결:** {analysis['매칭']}")
+            
+        # 내 생각 입력은 선택사항 (안 써도 그만)
+        user_comment = st.text_input("메모 (필요할 때만 작성)", key=f"note_{entry.link}")
         
-        if st.button("내 관점으로 스크랩"):
-            new_thought = {
-                "날짜": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "주제": sample_title,
-                "내용": my_insight
-            }
-            st.session_state.thought_history.append(new_thought)
-            st.toast("사고 기록 완료!")
-
-# [탭 2] 나의 사고 기록장 (그동안 쓴 글 모아보기)
-with tab2:
-    st.subheader("📔 내가 남긴 관점들")
-    if st.session_state.thought_history:
-        for i, entry in enumerate(reversed(st.session_state.thought_history)):
-            st.info(f"**{entry['날짜']}** - {entry['주제']}")
-            st.write(f"💬 {entry['내용']}")
-    else:
-        st.write("아직 기록된 생각이 없습니다.")
-
-# [탭 3] 사고 변화 타임라인 (사고 발전 과정 추출)
-with tab3:
-    st.subheader("📈 나의 사고 발전 과정")
-    if len(st.session_state.thought_history) >= 2:
-        st.write("이전의 생각과 현재의 생각이 어떻게 달라졌는지 비교해 보세요.")
-        
-        df_thought = pd.DataFrame(st.session_state.thought_history)
-        st.table(df_thought) # 표 형태로 한눈에 보기
-        
-        # 사고 추출 요약 (나중에 AI가 이 부분을 분석하게 됩니다)
-        st.success("✨ **성장 포인트 추출**")
-        st.write("- **초기:** 뉴스 정보를 수집하는 것에 집중함")
-        st.write("- **현재:** 해당 기술이 임상 현장에 미칠 실질적 영향을 분석하기 시작함")
-    else:
-        st.write("사고 변화를 분석하려면 최소 2개 이상의 기록이 필요합니다.")
+        if st.button("바구니에 담기", key=f"btn_{entry.link}"):
+            st.session_state.news_basket.append
+            
