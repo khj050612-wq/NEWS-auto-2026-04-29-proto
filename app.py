@@ -141,20 +141,37 @@ with tab_news:
                 st.caption(f"**출처: {entry.media_name}** | 원문 날짜: {entry.published}")
                 st.markdown(f"🔗 [기사 원문 읽기]({entry.link})")
 
-# [탭 2] 전공 학술 자료 (국내외 2단)
+# [탭 2] 전공 학술 자료 (수정된 로직)
 with tab_paper:
     cl, cr = st.columns(2)
     with cl:
         st.subheader("🇰🇷 국내 학술 동향")
-        academic = fetch_refined_data(["임상병리학회 학술대회"])
+        # 국내 학술대회 소식 위주
+        academic = fetch_refined_data(["임상병리학회 학술대회", "진단검사의학회 초록"])
         for p in academic[:10]:
             st.write(f"📌 {p.clean_title} ([링크]({p.link}))")
+            
     with cr:
         st.subheader("🔬 Global Journals (English)")
         st.link_button("PubMed 바로가기", "https://pubmed.ncbi.nlm.nih.gov/")
-        foreign = fetch_refined_data(["site:nature.com pathology", "PubMed diagnostic"])
-        for fp in foreign[:10]:
-            st.write(f"📄 {fp.clean_title} ([Read]({fp.link}))")
+        
+        # [수정 포인트] 해외 저널만 나오도록 사이트 제한 및 언어 필터 강화
+        # 한글 뉴스가 섞이지 않게 -site:kr 등을 추가함
+        foreign_query = [
+            "site:nature.com clinical pathology", 
+            "site:sciencedirect.com medical laboratory",
+            "site:academic.oup.com clinical chemistry",
+            "PubMed diagnostic technology"
+        ]
+        
+        # 영어 기사만 가져오도록 키워드 조합
+        foreign = fetch_refined_data(foreign_query)
+        
+        for fp in foreign[:12]:
+            # 제목에 한글이 포함된 기사는 필터링해서 제외
+            if not re.search('[가-힣]', fp.clean_title):
+                st.markdown(f"📄 **{fp.clean_title}**")
+                st.caption(f"Source: {fp.media_name} | [Read Original]({fp.link})")
 
 # [탭 3] 협회 링크
 with tab_assoc:
