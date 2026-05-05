@@ -14,7 +14,7 @@ ASSOC_LINKS = {
 }
 
 # 2. [UI] 스타일 (희진님 맞춤형 레이아웃)
-st.set_page_config(page_title="2026 임상병리 전략 마스터", layout="wide")
+st.set_page_config(page_title="2026 보건의료 뉴스 스크랩", layout="wide")
 st.markdown("""
     <style>
     /* 관련기사 문구 구석탱이 배치 */
@@ -48,8 +48,8 @@ st.markdown("""
 # 3. [로직] 데이터 처리 함수들
 @st.cache_data(ttl=600)
 def fetch_refined_data(query_text, filter_type="news", lang='ko'):
-    base_filter = "-양체험 -원장 -의사 -수의사 -공무원 -모집 -구병원 -에스포항병원"
-    if filter_type == "major": base_filter += " -획득 -인증 -수상 -보유"
+    base_filter = "-양체험 -원장 -수의사 -공무원 -모집 -구병원 -에스포항병원"
+    if filter_type == "major": base_filter += " -조경 -잡지"
     url = f"https://news.google.com/rss/search?q={quote(query_text + ' ' + base_filter)}&hl={lang}&gl=KR&ceid=KR:{lang}"
     feed = feedparser.parse(url)
     grouped = defaultdict(list)
@@ -85,9 +85,9 @@ def get_basis_text(word):
     return bases.get(word, "최신 의료 기술 도입 대응 필요")
 
 # --- 4. 메인 화면 ---
-st.title("🔬 2026 임상병리 커리어 전략 마스터")
+st.title("💌2026 보건의료 뉴스 스크랩💌")
 
-tab_news, tab_paper, tab_archive, tab_cal = st.tabs(["🗞️ 의료 뉴스 분석", "🧪 전공 분과", "📓 경험 아카이브", "📅 일정/링크"])
+tab_news, tab_paper, tab_archive, tab_cal = st.tabs(["의료 뉴스 분석", "전공 분과", "경험 아카이브", "📅 일정/링크"])
 
 # [탭 1] 의료 뉴스 분석
 with tab_news:
@@ -95,7 +95,7 @@ with tab_news:
     
     # "관련기사" 문구 구석탱이 배치
     st.markdown('<div class="count-label">← 관련기사 건수</div>', unsafe_allow_html=True)
-    st.subheader("🔥 지금 화제인 키워드")
+    st.subheader("🔥 이번주 화제 키워드")
     
     kw_cols = st.columns(5)
     all_titles = [e.clean_title for e in news_data]
