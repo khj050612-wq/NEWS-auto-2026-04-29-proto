@@ -117,13 +117,13 @@ with tab_news:
     for e in news_data[:12]:
         badge = f'<span class="news-badge">{e.count}건</span>' if e.count > 1 else ""
         st.markdown(f'<div class="main-title">📍 {e.clean_title} {badge}</div>', unsafe_allow_html=True)
-        with st.expander("🔎 분석 리포트 & 자소서 매칭 확인"):
+        with st.expander("🔎"):
             report = generate_smart_report(e.clean_title)
-            st.success(f"**📌 분석 주제**: {report['topic']}")
-            st.info(f"**📜 관련 근거**: {report['gov_rule']}")
+            st.success(f"**주제**: {report['topic']}")
+            st.info(f"**근거**: {report['gov_rule']}")
             st.divider()
-            st.markdown("#### 🎯 자소서/면접 전략 매칭")
-            match_df = pd.DataFrame({"구분": ["뉴스 핵심 이름", "연결 역량 키워드", "실전 사례 예시"], "내용": [report['keyword_name'], report['my_kw'], report['example']]})
+            st.markdown("#### ✔자소서/면접 전략 매칭")
+            match_df = pd.DataFrame({"구분": ["뉴스 핵심", "연결-역량 키워드", "실전 사례 ex)"], "내용": [report['keyword_name'], report['my_kw'], report['example']]})
             st.table(match_df)
             st.caption(f"[뉴스 원문 보기]({e.link}) | {e.dt.strftime('%Y-%m-%d')}")
 
