@@ -84,6 +84,31 @@ def get_basis_text(word):
     bases = {"디지털": "병리/검사실 디지털 전환 가속화", "AI": "인공지능 판독 보조 솔루션 도입 확대", "NGS": "유전체 분석 기반 정밀의료 확산", "임상병리사": "전문성 강화 논의", "검사": "POCT 및 스마트 검사 지침 강화"}
     return bases.get(word, "최신 의료 기술 도입 대응 필요")
 
+# [중복 제거 로직] 기관명(병원/기업)이 다르면 다른 뉴스로 인정
+    grouped = defaultdict(list)
+    for entry in all_entries:
+        # 매체명 제외한 순수 제목
+        clean_t = re.sub(r" - .*$", "", entry.title).strip()
+        # 제목 앞 12글자(기관명 포함 확률 높음)를 키로 설정
+        unique_key = clean_t.replace(" ", "")[:12]
+        grouped[unique_key].append(entry)
+    final = []
+    for key, items in grouped.items():
+        items.sort(key=lambda x: x.published_parsed, reverse=True)
+        rep = items[0]
+        rep.count = len(items)
+
+        # 매체명(출처) 정밀 추출
+        title_match = re.search(r" - (.*)$", rep.title)
+        if title_match:
+            rep.media_name = title_match.group(1)
+            rep.clean_title = rep.title.replace(f" - {rep.media_name}", "").strip()
+        else:
+            rep.media_name = rep.get('source', {}).get('text', '뉴스 매체')
+            rep.clean_title = rep.title
+        final.append(rep)
+    return sorted(final, key=lambda x: x.published_parsed, reverse=True)
+
 # --- 4. 메인 화면 ---
 st.title("💌2026 보건의료 뉴스 스크랩💌")
 
